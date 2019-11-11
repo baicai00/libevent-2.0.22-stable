@@ -274,8 +274,8 @@ struct {								\
  */
 #define TAILQ_HEAD(name, type)						\
 struct name {								\
-	struct type *tqh_first;	/* first element */			\
-	struct type **tqh_last;	/* addr of last next element */		\
+	struct type *tqh_first;	/* first element 指向第一个元素的首地址*/			\
+	struct type **tqh_last;	/* addr of last next element 指向最后一个元素的next指针的地址值*/		\
 }
 
 #define TAILQ_HEAD_INITIALIZER(head)					\
@@ -283,8 +283,8 @@ struct name {								\
 
 #define TAILQ_ENTRY(type)						\
 struct {								\
-	struct type *tqe_next;	/* next element */			\
-	struct type **tqe_prev;	/* address of previous next element */	\
+	struct type *tqe_next;	/* next element 指向下一个元素的首地址*/			\
+	struct type **tqe_prev;	/* address of previous next element 指向上一个元素的next指针的地址值*/	\
 }
 
 /*
@@ -293,6 +293,10 @@ struct {								\
 #define	TAILQ_FIRST(head)		((head)->tqh_first)
 #define	TAILQ_END(head)			NULL
 #define	TAILQ_NEXT(elm, field)		((elm)->field.tqe_next)
+/*TAILQ_LAST宏用于获取最后一个元素的地址，实现原理如下：
+ 1.该宏利用TAILQ_HEAD与TAILQ_ENTRY内存布局一致，而tqh_last指向最后一个元素的next指针的地址，即field的首地址
+ 2.将head->tqh_last强转成链表头的类型的指针，然后((struct headname*)head->tqh_last)->tqh_last就能取tqe_prev的地址值
+ 3.由于tqe_prev指向的是前一个地址的next指针的地址，而next指针的值就是下一个节点的首地址，因此对*tqe_prev就是要取的最后一个元素的地址值*/
 #define TAILQ_LAST(head, headname)					\
 	(*(((struct headname *)((head)->tqh_last))->tqh_last))
 /* XXX */
@@ -319,6 +323,7 @@ struct {								\
 	(head)->tqh_last = &(head)->tqh_first;				\
 } while (0)
 
+// 在链表头插入节点，elm表示要插入的结点,field表示elm的TAILQ_ENTRY域
 #define TAILQ_INSERT_HEAD(head, elm, field) do {			\
 	if (((elm)->field.tqe_next = (head)->tqh_first) != NULL)	\
 		(head)->tqh_first->field.tqe_prev =			\
@@ -329,6 +334,7 @@ struct {								\
 	(elm)->field.tqe_prev = &(head)->tqh_first;			\
 } while (0)
 
+// 在链表尾部插入节点
 #define TAILQ_INSERT_TAIL(head, elm, field) do {			\
 	(elm)->field.tqe_next = NULL;					\
 	(elm)->field.tqe_prev = (head)->tqh_last;			\
@@ -336,6 +342,7 @@ struct {								\
 	(head)->tqh_last = &(elm)->field.tqe_next;			\
 } while (0)
 
+// 在listlm后面插入elm节点
 #define TAILQ_INSERT_AFTER(head, listelm, elm, field) do {		\
 	if (((elm)->field.tqe_next = (listelm)->field.tqe_next) != NULL)\
 		(elm)->field.tqe_next->field.tqe_prev =			\
@@ -346,6 +353,7 @@ struct {								\
 	(elm)->field.tqe_prev = &(listelm)->field.tqe_next;		\
 } while (0)
 
+// 在listelm前面插入elm节点
 #define	TAILQ_INSERT_BEFORE(listelm, elm, field) do {			\
 	(elm)->field.tqe_prev = (listelm)->field.tqe_prev;		\
 	(elm)->field.tqe_next = (listelm);				\
@@ -353,6 +361,7 @@ struct {								\
 	(listelm)->field.tqe_prev = &(elm)->field.tqe_next;		\
 } while (0)
 
+// 将elm节点从链表中删除
 #define TAILQ_REMOVE(head, elm, field) do {				\
 	if (((elm)->field.tqe_next) != NULL)				\
 		(elm)->field.tqe_next->field.tqe_prev =			\
@@ -362,6 +371,7 @@ struct {								\
 	*(elm)->field.tqe_prev = (elm)->field.tqe_next;			\
 } while (0)
 
+// 在链表head中，使用elm2替换elm节点
 #define TAILQ_REPLACE(head, elm, elm2, field) do {			\
 	if (((elm2)->field.tqe_next = (elm)->field.tqe_next) != NULL)	\
 		(elm2)->field.tqe_next->field.tqe_prev =		\

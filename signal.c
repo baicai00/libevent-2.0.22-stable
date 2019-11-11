@@ -278,6 +278,7 @@ evsig_add(struct event_base *base, evutil_socket_t evsignal, short old, short ev
 	struct evsig_info *sig = &base->sig;
 	(void)p;
 
+	// NSIG是信号的个数，定义bits/signum.h，只需包含signal.h头文件
 	EVUTIL_ASSERT(evsignal >= 0 && evsignal < NSIG);
 
 	/* catch signals if they happen quickly */

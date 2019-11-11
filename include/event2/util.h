@@ -379,6 +379,7 @@ const char *evutil_socket_error_to_string(int errcode);
 #define evutil_timeradd(tvp, uvp, vvp) timeradd((tvp), (uvp), (vvp))
 #define evutil_timersub(tvp, uvp, vvp) timersub((tvp), (uvp), (vvp))
 #else
+// struct timeval类型的加法实现, vvp = tvp + uvp
 #define evutil_timeradd(tvp, uvp, vvp)					\
 	do {								\
 		(vvp)->tv_sec = (tvp)->tv_sec + (uvp)->tv_sec;		\
@@ -388,6 +389,7 @@ const char *evutil_socket_error_to_string(int errcode);
 			(vvp)->tv_usec -= 1000000;			\
 		}							\
 	} while (0)
+// struct timeval类型的减法实现，vvp = tvp - uvp
 #define	evutil_timersub(tvp, uvp, vvp)					\
 	do {								\
 		(vvp)->tv_sec = (tvp)->tv_sec - (uvp)->tv_sec;		\
@@ -408,6 +410,7 @@ const char *evutil_socket_error_to_string(int errcode);
 
 /** Return true iff the tvp is related to uvp according to the relational
  * operator cmp.  Recognized values for cmp are ==, <=, <, >=, and >. */
+// struct timeval类型比较，tvp cmp uvp.其中cmp可以为==,<=,<,>=,>
 #define	evutil_timercmp(tvp, uvp, cmp)					\
 	(((tvp)->tv_sec == (uvp)->tv_sec) ?				\
 	 ((tvp)->tv_usec cmp (uvp)->tv_usec) :				\

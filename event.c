@@ -353,6 +353,10 @@ detect_monotonic(void)
  * clock_gettime or gettimeofday as appropriate to find out the right time.
  * Return 0 on success, -1 on failure.
  */
+/*
+base->tv_cache.tv_sec不为零则从base->cache获取时间，否则调用gettimeofday获取时间，获得的时间存放到tp中。
+因此调用该函数后tp的时间要大于等于base->cache
+ */
 static int
 gettime(struct event_base *base, struct timeval *tp)
 {
@@ -1259,10 +1263,10 @@ event_persist_closure(struct event_base *base, struct event *ev)
 	// Define our callback, we use this to store our callback before it's executed
 	void (*evcb_callback)(evutil_socket_t, short, void *);
 
-        // Other fields of *ev that must be stored before executing
-        evutil_socket_t evcb_fd;
-        short evcb_res;
-        void *evcb_arg;
+	// Other fields of *ev that must be stored before executing
+	evutil_socket_t evcb_fd;
+	short evcb_res;
+	void *evcb_arg;
 
 	/* reschedule the persistent event if we have a timeout. */
 	if (ev->ev_io_timeout.tv_sec || ev->ev_io_timeout.tv_usec) {
@@ -1308,15 +1312,15 @@ event_persist_closure(struct event_base *base, struct event *ev)
 
 	// Save our callback before we release the lock
 	evcb_callback = ev->ev_callback;
-        evcb_fd = ev->ev_fd;
-        evcb_res = ev->ev_res;
-        evcb_arg = ev->ev_arg;
+	evcb_fd = ev->ev_fd;
+	evcb_res = ev->ev_res;
+	evcb_arg = ev->ev_arg;
 
 	// Release the lock
  	EVBASE_RELEASE_LOCK(base, th_base_lock);
 
 	// Execute the callback
-        (evcb_callback)(evcb_fd, evcb_res, evcb_arg);
+	(evcb_callback)(evcb_fd, evcb_res, evcb_arg);
 }
 
 /*
@@ -1631,7 +1635,7 @@ event_base_loop(struct event_base *base, int flags)
 			goto done;
 		}
 
-		update_time_cache(base);
+		update_time_cache(base);// 使用当前时间更新base->tv_cache
 
 		timeout_process(base);
 
@@ -1751,6 +1755,7 @@ event_assign(struct event *ev, struct event_base *base, evutil_socket_t fd, shor
 	ev->ev_ncalls = 0;
 	ev->ev_pncalls = NULL;
 
+	// 信号事件不支持EV_READ与EV_WRITE标志--add by dengkai
 	if (events & EV_SIGNAL) {
 		if ((events & (EV_READ|EV_WRITE)) != 0) {
 			event_warnx("%s: EV_SIGNAL is not compatible with "
@@ -2394,6 +2399,12 @@ event_deferred_cb_schedule(struct deferred_cb_queue *queue,
 	UNLOCK_DEFERRED_QUEUE(queue);
 }
 
+/*
+该函数将计算dispatch操作的超时时间，超时时间保存在tv_p中。
+1.一般情况下取base->timeheap顶点的超时时间减去当前时间即为dispatch的阻塞时间
+2.如果event_base中没有定时事件，即base->timeheap为空堆，则dispatch操作会一直阻塞直到IO事件到来；对于epoll来说，相当于epoll_wait的timeout传入-1
+3.如果位于base->timeheap顶点的定时事件的超时时间小于当前时间，则tv_p所保存的时间将被清空,即dispatch操作不会阻塞，相当于epoll_wait的timeout传入0
+ */
 static int
 timeout_next(struct event_base *base, struct timeval **tv_p)
 {
@@ -2602,6 +2613,10 @@ event_queue_insert(struct event_base *base, struct event *ev, int queue)
 		return;
 	}
 
+	/*
+	(~ev->ev_flags & EVLIST_INTERNAL)先对ev->ev_flags取反，然后执行&.
+	即如果ev->ev_flags中不包含EVLIST_INTERNAL，则返回EVLIST_INTERNAL，否返回0
+	 */
 	if (~ev->ev_flags & EVLIST_INTERNAL)
 		base->event_count++;
 

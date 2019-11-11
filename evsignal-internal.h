@@ -40,7 +40,7 @@ struct evsig_info {
 	/* Event watching ev_signal_pair[1] */
 	struct event ev_signal;
 	/* Socketpair used to send notifications from the signal handler */
-	evutil_socket_t ev_signal_pair[2];
+	evutil_socket_t ev_signal_pair[2]; // 0号为connector,1号为acceptor
 	/* True iff we've added the ev_signal event yet. */
 	int ev_signal_added;
 	/* Count of the number of signals we're currently watching. */
@@ -51,7 +51,7 @@ struct evsig_info {
 #ifdef _EVENT_HAVE_SIGACTION
 	struct sigaction **sh_old;
 #else
-	ev_sighandler_t **sh_old;
+	ev_sighandler_t **sh_old;//返回signal函数返回的旧的信号处理函数
 #endif
 	/* Size of sh_old. */
 	int sh_old_max;

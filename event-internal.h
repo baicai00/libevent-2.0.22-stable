@@ -124,7 +124,7 @@ HT_HEAD(event_io_map, event_map_entry);
 struct event_signal_map {
 	/* An array of evmap_io * or of evmap_signal *; empty entries are
 	 * set to NULL. */
-	void **entries;
+	void **entries;// evmap_io*或者evmap_signal*类型的数组，数组的索引为fd
 	/* The number of entries available in entries */
 	int nentries;
 };
@@ -246,6 +246,9 @@ struct event_base {
 
 	/** Stored timeval: used to avoid calling gettimeofday/clock_gettime
 	 * too often. */
+	/*
+	缓存时间，防止频繁调用gettimeofday，在event_base_loop函数中每次调用dispatch之前会清空tv_cache,调用之后会更新tv_cache
+	 */
 	struct timeval tv_cache;
 
 #if defined(_EVENT_HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC)

@@ -86,12 +86,13 @@ struct name {					\
 struct event_base;
 struct event {
 	/////////////////////////////////////////////////////////////
-	// TAILQ_ENTRY(event) ev_active_next;
-	// TAILQ_ENTRY(event)宏展开后如下所示--add by dengkai
+	TAILQ_ENTRY(event) ev_active_next;
+	/* TAILQ_ENTRY(event)宏展开后如下所示--add by dengkai
 	struct {
-		struct event *tqe_next;	/* next element */
-		struct event **tqe_prev;	/* address of previous next element */
+		struct event *tqe_next;
+		struct event **tqe_prev;
 	} ev_active_next;
+	*/ 
 	//////////////////////////////////////////////////////////////
 	TAILQ_ENTRY(event) ev_next;
 	/* for managing timeouts */
@@ -99,6 +100,11 @@ struct event {
 		TAILQ_ENTRY(event) ev_next_with_common_timeout;
 		int min_heap_idx;
 	} ev_timeout_pos;
+	/*
+	对于IO类型的事件，ev_fd保存对应的文件描述符(文件的fd或者socket套接字).
+	对于信号事件，ev_fd保存具体的信号值(例如SIGINT等)
+	对于定时器事件，ev_fd的值为-1
+	 */
 	evutil_socket_t ev_fd;
 
 	struct event_base *ev_base;
@@ -107,28 +113,41 @@ struct event {
 		/* used for io events */
 		struct {
 			TAILQ_ENTRY(event) ev_io_next;
-			struct timeval ev_timeout;
+			struct timeval ev_timeout;// 保存超时时间(时间间隔)
 		} ev_io;
 
 		/* used by signal events */
 		struct {
 			TAILQ_ENTRY(event) ev_signal_next;
+			/*
+			ev_ncalls表示信号事件就绪时回调函数被调用的次数，假如该值为2，则回调函数将被连续调用两次。
+			但是event_base的event_break成员为true时，将会中断调用，即ev_ncalls为2，而当前只调用了一次，然后检查event_break为true,则第2次调用将不会进行
+			 */
 			short ev_ncalls;
 			/* Allows deletes in callback */
-			short *ev_pncalls;
+			short *ev_pncalls;// 指向ev_ncalls成员或者NULL(当ev_ncalls为零或者event_break为true时指向NULL)
 		} ev_signal;
 	} _ev;
 
-	short ev_events;
+	short ev_events;// 保存事件的标志，取值为：EV_TIMEOUT、EV_READ、EV_WRITE、EV_SIGNAL、EV_PERSIST、EV_ET
 	short ev_res;		/* result passed to event callback */
+	/*
+	ev_flags应该是事件的状态标志，取值为EVLIST_XX宏，初始值为EVLIST_INIT
+	 */
 	short ev_flags;
 	ev_uint8_t ev_pri;	/* smaller numbers are higher priority */
+	/*
+	目前ev_closure的取值有三种：EV_CLOSURE_SIGNAL、EV_CLOSURE_PERSIST、EV_CLOSURE_NONE，该成员在event_assign函数中被赋值，分三种情况：
+	1.如果event_assign的events参数中包含EV_SIGNAL标志，则ev_closure被赋值为EV_CLOSURE_SIGNAL
+	2.否则，如果events参数中包含EV_PERSIST标志，则被赋值为EV_CLOSURE_PERSIST
+	3.否则，被赋值EV_CLOSURE_NONE
+	 */
 	ev_uint8_t ev_closure;
-	struct timeval ev_timeout;
+	struct timeval ev_timeout;//保存事件的超时时间点,而不是时间间隔
 
 	/* allows us to adopt for different types of events */
-	void (*ev_callback)(evutil_socket_t, short, void *arg);
-	void *ev_arg;
+	void (*ev_callback)(evutil_socket_t, short, void *arg); // 事件回调函数
+	void *ev_arg; // 事件回调函数的参数
 };
 
 TAILQ_HEAD (event_list, event);

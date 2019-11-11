@@ -87,6 +87,8 @@ main(int argc, char **argv)
 		event_is_persistent = 0;
 		flags = 0;
 	}
+	event_is_persistent = 1;
+	flags = EV_PERSIST;
 
 	/* Initalize the event library */
 	base = event_base_new();

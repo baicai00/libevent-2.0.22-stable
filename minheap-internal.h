@@ -35,10 +35,11 @@
 #include "util-internal.h"
 #include "mm-internal.h"
 
+// 根据struct event的ev_timeout域排序的小根堆,也就是说根节点的ev_timeout最小
 typedef struct min_heap
 {
 	struct event** p;
-	unsigned n, a;
+	unsigned n, a;// n表示当前堆中节点的数量，a表示当前堆能够容纳的节点总数
 } min_heap_t;
 
 static inline void	     min_heap_ctor(min_heap_t* s);

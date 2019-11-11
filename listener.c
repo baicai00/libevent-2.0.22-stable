@@ -238,6 +238,7 @@ evconnlistener_new_bind(struct event_base *base, evconnlistener_cb cb,
 	}
 
 	if (sa) {
+		// 调用bind未指定IP或port时如何处理???--add by dengkai
 		if (bind(fd, sa, socklen)<0) {
 			evutil_closesocket(fd);
 			return NULL;

@@ -2139,12 +2139,13 @@ evutil_sockaddr_is_loopback(const struct sockaddr *addr)
 #define MAX_SECONDS_IN_MSEC_LONG \
 	(((LONG_MAX) - 999) / 1000)
 
-long
-evutil_tv_to_msec(const struct timeval *tv)
+// 将tv转换为毫秒
+long evutil_tv_to_msec(const struct timeval *tv)
 {
 	if (tv->tv_usec > 1000000 || tv->tv_sec > MAX_SECONDS_IN_MSEC_LONG)
 		return -1;
 
+	// 假如tv->tv_usec为1100,经过(tv->tv_usec + 999) / 1000处理后，转换为2毫秒
 	return (tv->tv_sec * 1000) + ((tv->tv_usec + 999) / 1000);
 }
 

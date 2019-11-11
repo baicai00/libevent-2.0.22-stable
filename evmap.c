@@ -266,6 +266,10 @@ evmap_io_init(struct evmap_io *entry)
 
 /* return -1 on error, 0 on success if nothing changed in the event backend,
  * and 1 on success if something did. */
+/*
+evmap_io_add函数将ev插入到base->io.entries[fd]->events链表的尾部。
+其中base->io.entries[fd]的类型为struct evmap_io
+ */
 int
 evmap_io_add(struct event_base *base, evutil_socket_t fd, struct event *ev)
 {
@@ -348,14 +352,15 @@ evmap_io_add(struct event_base *base, evutil_socket_t fd, struct event *ev)
 	ctx->nwrite = (ev_uint16_t) nwrite;
 
 	//////////////////////////////////////////////////////////////////
-	//TAILQ_INSERT_TAIL(&ctx->events, ev, ev_io_next);//注释--add by dengkai
-	// TAILQ_INSERT_TAIL展开后如下所示,add by dengkai
+	TAILQ_INSERT_TAIL(&ctx->events, ev, ev_io_next);
+	/* TAILQ_INSERT_TAIL展开后如下所示,add by dengkai
 	do {
 		(ev)->ev_io_next.tqe_next = NULL;
 		(ev)->ev_io_next.tqe_prev = (&ctx->events)->tqh_last;
 		*(&ctx->events)->tqh_last = (ev);
 		(&ctx->events)->tqh_last = &(ev)->ev_io_next.tqe_next;
 	} while (0);
+	*/
 	//////////////////////////////////////////////////////////////////
 
 	return (retval);
@@ -460,9 +465,9 @@ evmap_signal_add(struct event_base *base, int sig, struct event *ev)
 	GET_SIGNAL_SLOT_AND_CTOR(ctx, map, sig, evmap_signal, evmap_signal_init,
 	    base->evsigsel->fdinfo_len);
 
+	// 同一个信号可以监听多次，如果ctx->events列表为空，说明是第一次监听该信号
 	if (TAILQ_EMPTY(&ctx->events)) {
-		if (evsel->add(base, ev->ev_fd, 0, EV_SIGNAL, NULL)
-		    == -1)
+		if (evsel->add(base, ev->ev_fd, 0, EV_SIGNAL, NULL) == -1)
 			return (-1);
 	}
 
